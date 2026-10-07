@@ -41,6 +41,7 @@ type Runtime struct {
 	Passes           *passsvc.Service
 	WindowRecompute  *passsvc.WindowRecomputer
 	Replanner        *passsvc.Replanner
+	ReplanPreviews   *passsvc.PreviewStore
 	Extensions       *passsvc.ExtensionService
 	Deadlines        *passsvc.DeadlineManager
 	Unlocker         *receiver.Unlocker
@@ -101,7 +102,12 @@ func NewRuntime(stateRoot string) (*Runtime, error) {
 		return nil, err
 	}
 	windowRecompute := passsvc.NewWindowRecomputer(windows, trail)
-	replanner := passsvc.NewReplanner(passes, windowRecompute, commands, trail)
+	reservations := scheduler.NewReservationPlanner(windows, timeline, 30*time.Second)
+	replanPreviews, err := passsvc.NewPreviewStore(paths)
+	if err != nil {
+		return nil, err
+	}
+	replanner := passsvc.NewReplanner(passes, windowRecompute, commands, timeline, reservations, replanPreviews, trail)
 	extensions := passsvc.NewExtensionService(passes, timeline, fleet, trail)
 	deadlines := passsvc.NewDeadlineManager(clockService)
 	unlocker := receiver.NewUnlocker(trail)
@@ -118,10 +124,10 @@ func NewRuntime(stateRoot string) (*Runtime, error) {
 	runtime := &Runtime{
 		StateRoot: stateRoot, Paths: paths, EventLog: log, Audit: trail, Catalog: catalog, Ephemerides: ephemerides,
 		Clock: clockService, Windows: windows, Timeline: timeline, Commands: commands,
-		Reservations: scheduler.NewReservationPlanner(windows, timeline, 30*time.Second),
+		Reservations: reservations,
 		Antennas:     fleet, Executor: antenna.NewExecutor(fleet, commands, trail), Stower: stower,
 		RF: rfController, Recorder: recorderManager, Passes: passes, WindowRecompute: windowRecompute,
-		Replanner: replanner, Extensions: extensions, Deadlines: deadlines, Unlocker: unlocker,
+		Replanner: replanner, ReplanPreviews: replanPreviews, Extensions: extensions, Deadlines: deadlines, Unlocker: unlocker,
 		Finalizer: finalizer, Attempts: attempts, RecordingState: recordingState,
 		Handovers: handovers, Weather: weatherCoordinator, receiverSessions: make(map[string]*receiver.Session),
 	}

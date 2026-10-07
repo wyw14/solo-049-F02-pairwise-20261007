@@ -144,6 +144,20 @@ func (t *Timeline) CurrentOwner(antennaID string, at time.Time) (Interval, bool)
 	return Interval{}, false
 }
 
+// ActiveForPass returns the pass reservation that still holds antenna time.
+func (t *Timeline) ActiveForPass(passID string) (Interval, bool) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	for _, intervals := range t.byAntenna {
+		for _, value := range intervals {
+			if value.PassID == passID && value.Status != Released {
+				return value, true
+			}
+		}
+	}
+	return Interval{}, false
+}
+
 func (t *Timeline) conflictLocked(candidate Interval, excluded string) error {
 	for _, existing := range t.byAntenna[candidate.AntennaID] {
 		if existing.ReservationID == excluded || existing.Status == Released {

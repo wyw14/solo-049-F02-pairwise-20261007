@@ -35,6 +35,7 @@ func NewHandler() (*Handler, error) {
 		{Path: "/antennas", Title: "Antenna field", Subtitle: "Ownership, pointing and wind-safe motion", View: "antennas", Endpoint: "/api/antennas", ActionLabel: "Refresh field"},
 		{Path: "/rf-chains", Title: "RF and acquisition", Subtitle: "Frequency plans and synchronized receiver attempts", View: "rf", Endpoint: "/api/rf-chains", ActionLabel: "Apply receive plan"},
 		{Path: "/recordings", Title: "Recording integrity", Subtitle: "Buffered frames, tail drain and sealed segments", View: "recordings", Endpoint: "/api/recordings", ActionLabel: "Refresh segments"},
+		{Path: "/replan", Title: "Reschedule preview", Subtitle: "Ephemeris revision impacts and manual review queue", View: "replan", Endpoint: "/api/replan/impacts", ActionLabel: "Refresh impacts"},
 	}
 	byPath := make(map[string]Page, len(pages))
 	for _, page := range pages {
