@@ -90,9 +90,16 @@ func TestEphemerisClockAndWindSafetyFlow(t *testing.T) {
 	if _, err := runtime.Ephemerides.Import(satellite.Ephemeris{SatelliteID: value.SatelliteID, Revision: previous.Revision + 1, Epoch: time.Now().UTC(), Line1: "revised orbital element one", Line2: "revised orbital element two"}); err != nil {
 		t.Fatal(err)
 	}
-	commands := runtime.Commands.List(value.ID)
-	if len(commands) == 0 || commands[len(commands)-1].Revision != previous.Revision+1 {
-		t.Fatal("revised pointing commands were not queued")
+	// The seeded pass is booked, so the revision must wait for manual review
+	// instead of replacing pointing commands.
+	for _, command := range runtime.Commands.List(value.ID) {
+		if !command.Retired && command.Revision != previous.Revision {
+			t.Fatalf("booked pass commands moved to revision %d without review", command.Revision)
+		}
+	}
+	reviews := runtime.Replanner.PendingReviews()
+	if len(reviews) != 1 || reviews[0].PassID != value.ID || reviews[0].Category != passsvc.TaskBooked {
+		t.Fatalf("booked pass did not enter manual review: %#v", reviews)
 	}
 	if _, err := runtime.Clock.Apply(stationclock.Sample{ObservedAt: time.Now().UTC(), Offset: 2 * time.Second, Source: "gps", Quality: "locked"}); err != nil {
 		t.Fatal(err)
